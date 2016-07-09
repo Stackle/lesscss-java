@@ -47,7 +47,7 @@ public class LessSource {
     private Resource resource;
     private String content;
     private String normalizedContent;
-    private Map<String, LessSource> imports = new LinkedHashMap<String, LessSource>();
+    private Map<String, LessSource> imports;
 
     /**
      * Constructs a new <code>LessSource</code>.
@@ -63,7 +63,26 @@ public class LessSource {
      * @throws IOException If the LESS source cannot be read.
      */
     public LessSource(Resource resource) throws IOException {
-        this(resource, Charset.defaultCharset());
+        this(resource, Charset.defaultCharset(), null);
+    }
+
+    /**
+     * Constructs a new <code>LessSource</code>.
+     * <p>
+     * This will read the metadata and content of the LESS source, and will automatically resolve the imports.
+     * </p>
+     * <p>
+     * The resource is read using the default Charset of the platform
+     * </p>
+     *
+     * @param resource The <code>File</code> reference to the LESS source to read.
+     * @param imports  Lists of imported file, useful for de-duplicate imported with multi level import. if null,
+     *                 will create empty map
+     * @throws FileNotFoundException If the LESS source (or one of its imports) could not be found.
+     * @throws IOException           If the LESS source cannot be read.
+     */
+    public LessSource(Resource resource, Map<String, LessSource> imports) throws IOException {
+        this(resource, Charset.defaultCharset(), imports);
     }
 
     /**
@@ -74,16 +93,24 @@ public class LessSource {
      *
      * @param resource The <code>File</code> reference to the LESS resource to read.
      * @param charset charset used to read the less resource.
+     * @param imports  Lists of imported file, useful for de-duplicate imported with multi level import. if null,
+     *                 will create empty map
      * @throws FileNotFoundException If the LESS resource (or one of its imports) could not be found.
      * @throws IOException If the LESS resource cannot be read.
      */
-    public LessSource(Resource resource, Charset charset) throws IOException {
+    public LessSource(Resource resource, Charset charset, Map<String, LessSource> imports) throws IOException {
         if (resource == null) {
             throw new IllegalArgumentException("Resource must not be null.");
         }
         if (!resource.exists()) {
             throw new IOException("Resource " + resource + " not found.");
         }
+        if (imports == null) {
+            this.imports = new LinkedHashMap<String, LessSource>();
+        } else {
+            this.imports = imports;
+        }
+
         this.resource = resource;
         this.content = this.normalizedContent = loadResource(resource, charset);
         resolveImports();
@@ -198,8 +225,8 @@ public class LessSource {
             if (importType.equals("less")) {
                 logger.debug("Importing %s", importedResource);
 
-                if( !imports.containsKey(importedResource) ) {
-                    LessSource importedLessSource = new LessSource(getImportedResource(importedResource));
+                if (!imports.containsKey(importedResource)) {
+                    LessSource importedLessSource = new LessSource(getImportedResource(importedResource), imports);
                     imports.put(importedResource, importedLessSource);
 
                     normalizedContent = includeImportedContent(importedLessSource, importMatcher);

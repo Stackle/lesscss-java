@@ -143,7 +143,7 @@ public class LessSourceTest {
     private String readLessSourceWithEncoding(String encoding) throws IOException, IllegalAccessException {
         URL sourceUrl = getClass().getResource("/compatibility/utf8-content.less");
         File sourceFile = new File(sourceUrl.getFile());
-        LessSource lessSource = new LessSource(new FileResource(sourceFile), Charset.forName(encoding));
+        LessSource lessSource = new LessSource(new FileResource(sourceFile), Charset.forName(encoding), null);
         return (String) FieldUtils.readField(lessSource, "content", true);
     }
 
